@@ -1,15 +1,23 @@
 # mailctl client
 
+CLI for sending / receiving encrypted messages
+
 ## Build
-* `go build *.go -o client.out`
+* `go build *.go -o mailctl`
 
-## Run
-Subcommands:
+## Example Usage
 
-* **configure** (set up configuration): `./client.out configure --config-file=<path to config file | OPTIONAL>`
-* **send**: `./client.out send --rcpt=< 'user'@'org' | REQUIRED> --file=<path to file to be send | REQUIRED> --subject=<subject line | OPTIONAL> --config-file=<path to config file | OPTIONAL>`
-* **recv**: `./client.out recv --message-id=<message id | REQUIRED> --config-file=<path to config file | OPTIONAL>`
-* **list** (list unread messages): `./client.out list --config-file=<path to config file | OPTIONAL>`
+### Configure:
+* `mailctl configure --config-file=<config-file | OPTIONAL>`
 
-### Help
-Run `./client.out -h`
+### Send message:
+* `mailctl send --rcpt=<user>@<org> --file=<file> -subject=<subject | OPTIONAL>`
+
+### List unread messages:
+* `mailctl list --config-file=<config-file | OPTIONAL>`
+
+### Receive message:
+* `mailctl recv --message-id=<message_id> --config-file=<config-file | OPTIONAL>`
+
+### Help:
+* `mailctl help`
