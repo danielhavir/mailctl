@@ -7,7 +7,6 @@ import (
 )
 
 func printHelp(flags ...*flag.FlagSet) {
-	fmt.Println("valid commands and their usage")
 	fmt.Println("\"configure\" (setting up configuration):")
 	flags[0].PrintDefaults()
 	fmt.Println("\"send\" (sending messages):")
@@ -79,8 +78,11 @@ func main() {
 	case "list":
 		listCommand.Parse(os.Args[2:])
 		fmt.Println("List unread messages")
+	case "h", "-h", "-help", "--help", "help":
+		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
+		os.Exit(0)
 	default:
-		fmt.Printf("%q is not valid command.\n", os.Args[1])
+		fmt.Printf("%q is not valid command.\nvalid commands and their usage\n", os.Args[1])
 		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
 		os.Exit(0)
 	}
