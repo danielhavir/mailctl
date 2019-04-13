@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/user"
 	"path"
 	"strconv"
 	"strings"
@@ -38,7 +39,11 @@ func readPassword() (key []byte, err error) {
 
 func writeconfigfile(config *Config, filepath string, key []byte) (err error) {
 	if filepath == "" {
-		filepath = path.Join(confDir, confFile)
+		usr, err := user.Current()
+		if err != nil {
+			return err
+		}
+		filepath = path.Join(usr.HomeDir, confDir, confFile)
 	}
 	confBytes, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
@@ -54,7 +59,11 @@ func writeconfigfile(config *Config, filepath string, key []byte) (err error) {
 
 func readconfigfile(filepath string, key []byte) (config *Config, err error) {
 	if filepath == "" {
-		filepath = path.Join(confDir, confFile)
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		filepath = path.Join(usr.HomeDir, confDir, confFile)
 	}
 	confBytes, err := readfile(filepath)
 	if err != nil {
@@ -75,17 +84,30 @@ func readconfigfile(filepath string, key []byte) (config *Config, err error) {
 }
 
 func configure(filepath string) (err error) {
-	if filepath == "" {
-		filepath = path.Join(confDir, confFile)
+	usr, err := user.Current()
+	if err != nil {
+		return
 	}
-	var config *Config
+
+	if filepath == "" {
+		filepath = path.Join(usr.HomeDir, confDir, confFile)
+	}
+
+	config := &Config{
+		User:         "",
+		Organization: "",
+		Host:         "",
+		Port:         1881,
+	}
 	var key []byte
 
 	if key, err = readPassword(); err != nil {
 		return
 	}
-	if _, err = os.Stat(confDir); os.IsNotExist(err) {
-		err = mkdir(confDir)
+
+	dir := path.Join(usr.HomeDir, confDir)
+	if _, err = os.Stat(dir); os.IsNotExist(err) {
+		err = mkdir(dir)
 		if err != nil {
 			return
 		}
@@ -95,14 +117,8 @@ func configure(filepath string) (err error) {
 			return
 		}
 		fmt.Println("overwriting existing configuration")
-	} else {
-		config = &Config{
-			User:         "",
-			Organization: "",
-			Host:         "",
-			Port:         1881,
-		}
 	}
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("Enter username [%s]: ", config.User)
 	user, _ := reader.ReadString('\n')
@@ -125,6 +141,6 @@ func configure(filepath string) (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Printf("configuration was successfully created and stores in \"%s\"\n", filepath)
+	fmt.Printf("configuration was successfully created and stored in \"%s\"\n", filepath)
 	return
 }
