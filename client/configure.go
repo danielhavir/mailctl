@@ -77,7 +77,10 @@ func readconfigfile(filepath string, key []byte) (config *Config, err error) {
 	// hex encoding doubles the size of the hash, hence 2*sha256.Size
 	hash := decodehex(confBytes[:2*sha256.Size])
 	confBytes = confBytes[2*sha256.Size:]
-	h := hmac.New(sha256.New, key)
+	h, err := blake2b.New256(key)
+	if err != nil {
+		return
+	}
 	h.Write(confBytes)
 	hash2 := h.Sum(nil)
 	if !hmac.Equal(hash, hash2[:]) {
@@ -125,12 +128,25 @@ func configure(filepath string) (err error) {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("Enter username [%s]: ", config.User)
-	user, _ := reader.ReadString('\n')
-	config.User = strings.TrimSuffix(user, "\n")
-	fmt.Printf("Enter organization [%s]: ", config.Organization)
-	org, _ := reader.ReadString('\n')
-	config.Organization = strings.TrimSuffix(org, "\n")
+	// username and organization cannot be overwritten
+	if len(config.User) == 0 {
+		fmt.Print("Enter username: ")
+		user, _ := reader.ReadString('\n')
+		if len(user) > 1 {
+			config.User = strings.TrimSuffix(user, "\n")
+		} else {
+			err = errors.New("username cannot be empty")
+			return
+		}
+		fmt.Print("Enter organization: ")
+		org, _ := reader.ReadString('\n')
+		if len(org) > 1 {
+			config.Organization = strings.TrimSuffix(org, "\n")
+		} else {
+			err = errors.New("username cannot be empty")
+			return
+		}
+	}
 	fmt.Printf("Enter host address [%s]: ", config.Host)
 	host, _ := reader.ReadString('\n')
 	config.Host = strings.TrimSuffix(host, "\n")
