@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"crypto/hmac"
-	"crypto/sha256"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/user"
 	"path"
@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 
+	hpke "github.com/danielhavir/go-hpke"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -24,11 +25,13 @@ type Config struct {
 	Organization string `json:"organization"`
 	Host         string `json:"host"`
 	Port         int    `json:"port"`
+	Status       uint8  `json:"status"`
 }
 
 const (
 	confDir  = ".mailctl"
 	confFile = "config.json"
+	hpkeMode = hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV
 )
 
 func readPassword() (key []byte, err error) {
@@ -36,6 +39,62 @@ func readPassword() (key []byte, err error) {
 	key, err = terminal.ReadPassword(int(syscall.Stdin))
 	key = hash(key)
 	fmt.Println()
+	return
+}
+
+func generateKey(confPath string) (pBytes []byte, err error) {
+	params, _ := hpke.GetParams(hpkeMode)
+	prv, pub, err := hpke.GenerateKeyPair(params, nil)
+	if err != nil {
+		return
+	}
+
+	pBytes, err = hpke.Marshall(params, pub)
+	if err != nil {
+		return
+	}
+	pBytes = encodehex(pBytes)
+	pubPath := path.Join(confPath, "key.pub")
+	writefile(pBytes, pubPath)
+
+	sBytes, err := hpke.MarshallPrivate(params, prv)
+	if err != nil {
+		return
+	}
+	sBytes = encodehex(sBytes)
+	prvPath := path.Join(confPath, "key.pem")
+	writefile(sBytes, prvPath)
+
+	return
+}
+
+func registerKey(config *Config, key, pub []byte) (status byte, err error) {
+	h, err := blake2b.New256(key)
+	if err != nil {
+		return
+	}
+	h.Write([]byte(config.User))
+	h.Write([]byte(config.Organization))
+	userHash := h.Sum(nil)
+
+	// parse server IP from config file
+	ip := net.ParseIP(config.Host)
+	addr := net.TCPAddr{
+		IP:   ip,
+		Port: config.Port,
+	}
+
+	// dial a connection
+	conn, err := net.DialTCP("tcp", nil, &addr)
+	if err != nil {
+		return
+	}
+
+	// specify op
+	conn.Write([]byte{'c'})
+	conn.Write(userHash)
+	conn.Write(pub)
+	status, err = bufio.NewReader(conn).ReadByte()
 	return
 }
 
@@ -74,16 +133,16 @@ func readconfigfile(filepath string, key []byte) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	// hex encoding doubles the size of the hash, hence 2*sha256.Size
-	hash := decodehex(confBytes[:2*sha256.Size])
-	confBytes = confBytes[2*sha256.Size:]
+	// hex encoding doubles the size of the hash, hence 2*blake2b.Size256
+	hash := decodehex(confBytes[:2*blake2b.Size256])
+	confBytes = confBytes[2*blake2b.Size256:]
 	h, err := blake2b.New256(key)
 	if err != nil {
 		return
 	}
 	h.Write(confBytes)
 	hash2 := h.Sum(nil)
-	if !hmac.Equal(hash, hash2[:]) {
+	if !bytes.Equal(hash, hash2[:]) {
 		err = errors.New("password was incorrect or the integrity of the configuration was compromised")
 		return
 	}
@@ -91,15 +150,17 @@ func readconfigfile(filepath string, key []byte) (config *Config, err error) {
 	return
 }
 
-func configure(filepath string) (err error) {
+func configure(confPath string) (err error) {
 	usr, err := user.Current()
 	if err != nil {
 		return
 	}
 
-	if filepath == "" {
-		filepath = path.Join(usr.HomeDir, confDir, confFile)
+	if confPath == "" {
+		confPath = path.Join(usr.HomeDir, confDir)
 	}
+
+	filepath := path.Join(confPath, confFile)
 
 	config := &Config{
 		User:         "",
@@ -113,9 +174,11 @@ func configure(filepath string) (err error) {
 		return
 	}
 
-	dir := path.Join(usr.HomeDir, confDir)
-	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		err = mkdir(dir)
+	var overwritting bool
+	overwritting = false
+
+	if _, err = os.Stat(confPath); os.IsNotExist(err) {
+		err = mkdir(confPath)
 		if err != nil {
 			return
 		}
@@ -124,12 +187,13 @@ func configure(filepath string) (err error) {
 		if err != nil {
 			return
 		}
+		overwritting = true
 		fmt.Println("overwriting existing configuration")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 	// username and organization cannot be overwritten
-	if len(config.User) == 0 {
+	if !overwritting {
 		fmt.Print("Enter username: ")
 		user, _ := reader.ReadString('\n')
 		if len(user) > 1 {
@@ -158,6 +222,19 @@ func configure(filepath string) (err error) {
 		err = errors.New("port must be a valid number")
 		return
 	}
+
+	if !overwritting {
+		fmt.Println("generating keys...")
+		pub, err := generateKey(confPath)
+		if err != nil {
+			return err
+		}
+		config.Status, err = registerKey(config, key, pub)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = writeconfigfile(config, filepath, key)
 	if err != nil {
 		return
