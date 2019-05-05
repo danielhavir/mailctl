@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"os"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 func readfile(filepath string) (dat []byte, err error) {
@@ -31,4 +33,9 @@ func encodehex(src []byte) []byte {
 func mkdir(dirpath string) (err error) {
 	err = os.Mkdir(dirpath, 0755)
 	return
+}
+
+func hash(data []byte) []byte {
+	h := blake2b.Sum256(data)
+	return h[:]
 }

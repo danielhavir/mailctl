@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -33,6 +34,7 @@ const (
 func readPassword() (key []byte, err error) {
 	fmt.Print("Enter Password: ")
 	key, err = terminal.ReadPassword(int(syscall.Stdin))
+	key = hash(key)
 	fmt.Println()
 	return
 }
@@ -49,7 +51,10 @@ func writeconfigfile(config *Config, filepath string, key []byte) (err error) {
 	if err != nil {
 		return
 	}
-	h := hmac.New(sha256.New, key)
+	h, err := blake2b.New256(key)
+	if err != nil {
+		return
+	}
 	h.Write(confBytes)
 	hash := h.Sum(nil)
 	confBytes = append(encodehex(hash[:]), confBytes...)

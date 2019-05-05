@@ -19,20 +19,20 @@ func printHelp(flags ...*flag.FlagSet) {
 
 func main() {
 	configureCommand := flag.NewFlagSet("configure", flag.ExitOnError)
-	configPath := configureCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
+	configPathC := configureCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
 
 	sendCommand := flag.NewFlagSet("send", flag.ExitOnError)
 	rcpt := sendCommand.String("rcpt", "", "Recipient of the message (format: <user>@<organization>) [required]")
 	file := sendCommand.String("file", "", "Path to file to be send [required]")
 	subject := sendCommand.String("subject", "", "Path to file to be send [optional]")
-	configPath = sendCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
+	configPathS := sendCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
 
 	recvCommand := flag.NewFlagSet("recv", flag.ExitOnError)
 	messageID := recvCommand.String("message-id", "", "Message ID [required]")
-	configPath = recvCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
+	configPathR := recvCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
 
 	listCommand := flag.NewFlagSet("list", flag.ExitOnError)
-	configPath = listCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
+	configPathL := listCommand.String("config-file", "", "Path to config file [optional] (default \"~/.mailctl/config.json\")")
 
 	if len(os.Args) < 2 {
 		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
@@ -44,7 +44,7 @@ func main() {
 	switch os.Args[1] {
 	case "configure":
 		configureCommand.Parse(os.Args[2:])
-		err := configure(*configPath)
+		err := configure(*configPathC)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
@@ -56,7 +56,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(2)
 		}
-		config, err = readconfigfile(*configPath, pswd)
+		config, err = readconfigfile(*configPathS, pswd)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
@@ -69,7 +69,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(2)
 		}
-		config, err = readconfigfile(*configPath, pswd)
+		config, err = readconfigfile(*configPathR, pswd)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
@@ -77,7 +77,13 @@ func main() {
 		recv(config, *messageID)
 	case "list":
 		listCommand.Parse(os.Args[2:])
-		fmt.Println("List unread messages")
+		pswd, err := readPassword()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
+		}
+		config, err = readconfigfile(*configPathL, pswd)
+		list(config)
 	case "h", "-h", "-help", "--help", "help":
 		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
 		os.Exit(0)
