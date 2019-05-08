@@ -78,14 +78,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 }
 
 func registerKey(config *Config, key, pub []byte) (status byte) {
-	h, err := blake2b.New256(key)
-	if err != nil {
-		fmt.Println(err)
-		return 2
-	}
-	h.Write([]byte(config.User))
-	h.Write([]byte(config.Organization))
-	userHash := h.Sum(nil)
+	userHash := hash([]byte(config.User + config.Organization))
 
 	// parse server IP from config file
 	ip := net.ParseIP(config.Host)

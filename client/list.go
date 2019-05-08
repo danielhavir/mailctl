@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-
-	"golang.org/x/crypto/blake2b"
 )
 
 func list(config *Config, key []byte) {
@@ -33,14 +31,7 @@ func list(config *Config, key []byte) {
 		return
 	}
 
-	h, err := blake2b.New256(key)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	h.Write([]byte(config.User))
-	h.Write([]byte(config.Organization))
-	userHash := h.Sum(nil)
+	userHash := hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response

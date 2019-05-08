@@ -8,15 +8,16 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"time"
 )
 
 // define path to files in a global scope
 var storage string
 
 func handleConnection(conn net.Conn) {
+	start := time.Now()
 	defer conn.Close()
 	r := bufio.NewReader(conn)
-	fmt.Println("New connection with " + conn.RemoteAddr().String())
 
 	op, err := r.ReadByte()
 	if err != nil {
@@ -34,6 +35,8 @@ func handleConnection(conn net.Conn) {
 	default:
 		conn.Write([]byte{1})
 	}
+	elapsed := time.Since(start)
+	fmt.Printf("New connection with %s resolved in %s\n", conn.RemoteAddr().String(), elapsed)
 }
 
 func main() {
