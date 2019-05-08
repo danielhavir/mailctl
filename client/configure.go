@@ -127,6 +127,11 @@ func registerKey(config *Config, key, pub []byte) (status byte) {
 }
 
 func readKey(config *Config, confPath string, key []byte) (prv crypto.PrivateKey, err error) {
+	if confPath == "" {
+		usr, _ := user.Current()
+		confPath = path.Join(usr.HomeDir, confDir)
+	}
+
 	encBytes, err := readfile(path.Join(confPath, "key.pem"))
 	if err != nil {
 		return
@@ -308,10 +313,6 @@ func verify(r *bufio.Reader, conn net.Conn, prv crypto.PrivateKey) (err error) {
 
 	enc := make([]byte, 32)
 	rec, err = r.Read(enc)
-	if uint8(rec) < len {
-		err = errors.New("expected and received ciphertext lenghts do not match")
-		return
-	}
 	if uint8(rec) < 32 {
 		err = errors.New("expected and received ephemeral key's lenght do not match")
 		return
