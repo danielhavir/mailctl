@@ -107,10 +107,15 @@ func registerKey(config *Config, key, pub []byte) (status byte) {
 	conn.Write(userHash)
 	// get the response
 	status, err = bufio.NewReader(conn).ReadByte()
-	if err != nil || status != 0 {
+	if err != nil || status == 1 {
 		fmt.Println("user could not be registered, check connection ", err)
 		return 1
 	}
+	if status == 2 {
+		fmt.Println("username", config.User, "already exists within organization ", config.Organization)
+		return
+	}
+
 	// write 64 bytes hex encoded
 	conn.Write(pub)
 	status, err = bufio.NewReader(conn).ReadByte()
@@ -273,6 +278,10 @@ func configure(confPath string) (err error) {
 			return err
 		}
 		config.Status = registerKey(config, key, pub)
+	}
+
+	if config.Status == 2 {
+		return errors.New("configure with another username")
 	}
 
 	err = writeconfigfile(config, confPath, key)

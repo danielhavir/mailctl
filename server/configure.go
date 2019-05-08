@@ -12,7 +12,7 @@ import (
 
 const confDir = "mailctl"
 
-func configure(path string) (configured bool, err error) {
+func configure(path string) (exist bool, err error) {
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		err = os.Mkdir(path, 0755)
 		return
@@ -30,11 +30,17 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 
 	// register user if not already registered and respond
 	userDir := path.Join(storage, string(encodehex(userHash)))
-	if _, err := configure(userDir); err != nil {
+	exist, err := configure(userDir)
+	if err != nil {
 		fmt.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
+	if exist {
+		conn.Write([]byte{2})
+		return
+	}
+
 	conn.Write([]byte{0})
 
 	pubBytes := make([]byte, 64)
