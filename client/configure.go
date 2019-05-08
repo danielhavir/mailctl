@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"syscall"
 
 	hpke "github.com/danielhavir/go-hpke"
+	"github.com/danielhavir/xchacha20blake2b"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -42,7 +44,7 @@ func readPassword() (key []byte, err error) {
 	return
 }
 
-func generateKey(confPath string) (pBytes []byte, err error) {
+func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, err error) {
 	params, _ := hpke.GetParams(hpkeMode)
 	prv, pub, err := hpke.GenerateKeyPair(params, nil)
 	if err != nil {
@@ -61,17 +63,25 @@ func generateKey(confPath string) (pBytes []byte, err error) {
 	if err != nil {
 		return
 	}
-	sBytes = encodehex(sBytes)
+
+	cipher, err := xchacha20blake2b.New(key)
+	if err != nil {
+		return
+	}
+
+	encBytes := cipher.Seal(nil, nil, sBytes, append([]byte(config.User), []byte(config.Organization)...))
+	encBytes = encodehex(encBytes)
 	prvPath := path.Join(confPath, "key.pem")
-	writefile(sBytes, prvPath)
+	writefile(encBytes, prvPath)
 
 	return
 }
 
-func registerKey(config *Config, key, pub []byte) (status byte, err error) {
+func registerKey(config *Config, key, pub []byte) (status byte) {
 	h, err := blake2b.New256(key)
 	if err != nil {
-		return
+		fmt.Println(err)
+		return 2
 	}
 	h.Write([]byte(config.User))
 	h.Write([]byte(config.Organization))
@@ -87,7 +97,8 @@ func registerKey(config *Config, key, pub []byte) (status byte, err error) {
 	// dial a connection
 	conn, err := net.DialTCP("tcp", nil, &addr)
 	if err != nil {
-		return
+		fmt.Println("public key could not be registered, server could not be reached ", err)
+		return 1
 	}
 
 	// specify op
@@ -95,16 +106,41 @@ func registerKey(config *Config, key, pub []byte) (status byte, err error) {
 	conn.Write(userHash)
 	conn.Write(pub)
 	status, err = bufio.NewReader(conn).ReadByte()
+	if err != nil {
+		fmt.Println("public key could not be registered, check connections ", err)
+		return 1
+	}
 	return
 }
 
-func writeconfigfile(config *Config, filepath string, key []byte) (err error) {
-	if filepath == "" {
+func readKey(config *Config, confPath string, key []byte) (prv crypto.PrivateKey, err error) {
+	encBytes, err := readfile(path.Join(confPath, "key.pem"))
+	if err != nil {
+		return
+	}
+	encBytes = decodehex(encBytes)
+	cipher, err := xchacha20blake2b.New(key)
+	if err != nil {
+		return
+	}
+
+	sBytes, err := cipher.Open(nil, nil, encBytes, append([]byte(config.User), []byte(config.Organization)...))
+	if err != nil {
+		return
+	}
+
+	params, _ := hpke.GetParams(hpkeMode)
+	prv, err = hpke.UnmarshallPrivate(params, sBytes)
+	return
+}
+
+func writeconfigfile(config *Config, confPath string, key []byte) (err error) {
+	if confPath == "" {
 		usr, err := user.Current()
 		if err != nil {
 			return err
 		}
-		filepath = path.Join(usr.HomeDir, confDir, confFile)
+		confPath = path.Join(usr.HomeDir, confDir)
 	}
 	confBytes, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
@@ -117,19 +153,19 @@ func writeconfigfile(config *Config, filepath string, key []byte) (err error) {
 	h.Write(confBytes)
 	hash := h.Sum(nil)
 	confBytes = append(encodehex(hash[:]), confBytes...)
-	err = writefile(confBytes, filepath)
+	err = writefile(confBytes, path.Join(confPath, confFile))
 	return
 }
 
-func readconfigfile(filepath string, key []byte) (config *Config, err error) {
-	if filepath == "" {
+func readconfigfile(confPath string, key []byte) (config *Config, err error) {
+	if confPath == "" {
 		usr, err := user.Current()
 		if err != nil {
 			return nil, err
 		}
-		filepath = path.Join(usr.HomeDir, confDir, confFile)
+		confPath = path.Join(usr.HomeDir, confDir)
 	}
-	confBytes, err := readfile(filepath)
+	confBytes, err := readfile(path.Join(confPath, confFile))
 	if err != nil {
 		return
 	}
@@ -160,8 +196,6 @@ func configure(confPath string) (err error) {
 		confPath = path.Join(usr.HomeDir, confDir)
 	}
 
-	filepath := path.Join(confPath, confFile)
-
 	config := &Config{
 		User:         "",
 		Organization: "",
@@ -177,13 +211,14 @@ func configure(confPath string) (err error) {
 	var overwritting bool
 	overwritting = false
 
+	filepath := path.Join(confPath, confFile)
 	if _, err = os.Stat(confPath); os.IsNotExist(err) {
 		err = mkdir(confPath)
 		if err != nil {
 			return
 		}
 	} else if _, err = os.Stat(filepath); !os.IsNotExist(err) {
-		config, err = readconfigfile(filepath, key)
+		config, err = readconfigfile(confPath, key)
 		if err != nil {
 			return
 		}
@@ -225,17 +260,14 @@ func configure(confPath string) (err error) {
 
 	if !overwritting {
 		fmt.Println("generating keys...")
-		pub, err := generateKey(confPath)
+		pub, err := generateKey(config, confPath, key)
 		if err != nil {
 			return err
 		}
-		config.Status, err = registerKey(config, key, pub)
-		if err != nil {
-			return err
-		}
+		config.Status = registerKey(config, key, pub)
 	}
 
-	err = writeconfigfile(config, filepath, key)
+	err = writeconfigfile(config, confPath, key)
 	if err != nil {
 		return
 	}
