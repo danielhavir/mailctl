@@ -2,11 +2,44 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"net"
+	"os"
+	"path"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 func listFiles(r *bufio.Reader, conn net.Conn) {
-	user, _ := r.ReadString('\n')
-	conn.Write([]byte("listing unread files for user " + user))
+	userHash := make([]byte, blake2b.Size256)
+	if _, err := r.Read(userHash); err != nil {
+		log.Fatal(err)
+		conn.Write([]byte{1})
+		return
+	}
+
+	// register user if not already registered and respond
+	userDir := path.Join(storage, string(encodehex(userHash)))
+	if _, err := os.Stat(userDir); os.IsNotExist(err) {
+		conn.Write([]byte{2})
+		return
+	}
+	conn.Write([]byte{0})
+
+	f, err := os.Open(userDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	files, err := f.Readdir(-1)
+	f.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		conn.Write([]byte(file.Name() + "\n"))
+	}
+	conn.Write([]byte("EOF\n"))
+
 	return
 }

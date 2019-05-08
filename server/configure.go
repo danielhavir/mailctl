@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -23,7 +23,7 @@ func configure(path string) (exist bool, err error) {
 func registerKey(r *bufio.Reader, conn net.Conn) {
 	userHash := make([]byte, blake2b.Size256)
 	if _, err := r.Read(userHash); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		conn.Write([]byte{1})
 		return
 	}
@@ -32,7 +32,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	userDir := path.Join(storage, string(encodehex(userHash)))
 	exist, err := configure(userDir)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		conn.Write([]byte{1})
 		return
 	}

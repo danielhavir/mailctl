@@ -28,11 +28,9 @@ func handleConnection(conn net.Conn) {
 	case 'l':
 		conn.Write([]byte{0})
 		listFiles(r, conn)
-		break
 	case 'c':
 		conn.Write([]byte{0})
 		registerKey(r, conn)
-		break
 	default:
 		conn.Write([]byte{1})
 	}

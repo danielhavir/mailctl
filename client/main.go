@@ -83,7 +83,7 @@ func main() {
 			os.Exit(2)
 		}
 		config, err = readconfigfile(*confPathL, pswd)
-		list(config)
+		list(config, pswd)
 	case "h", "-h", "-help", "--help", "help":
 		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
 		os.Exit(0)
