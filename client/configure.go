@@ -103,16 +103,23 @@ func registerKey(config *Config, key, pub []byte) (status byte) {
 
 	// specify op
 	conn.Write([]byte{'c'})
+	// get the response
+	status, err = bufio.NewReader(conn).ReadByte()
+	if err != nil || status != 0 {
+		fmt.Println("server did not recognize the operation ", err)
+		return
+	}
+
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
 	status, err = bufio.NewReader(conn).ReadByte()
 	if err != nil || status == 1 {
 		fmt.Println("user could not be registered, check connection ", err)
-		return 1
+		return
 	}
 	if status == 2 {
-		fmt.Println("username", config.User, "already exists within organization ", config.Organization)
+		fmt.Printf("username \"%s\" already exists within organization \"%s\"\n", config.User, config.Organization)
 		return
 	}
 
