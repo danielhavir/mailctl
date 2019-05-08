@@ -2,11 +2,12 @@ package main
 
 import (
 	"bufio"
+	"crypto"
 	"fmt"
 	"net"
 )
 
-func list(config *Config, key []byte) {
+func list(config *Config, key []byte, prv crypto.PrivateKey) {
 	var status byte
 
 	// parse server IP from config file
@@ -45,9 +46,15 @@ func list(config *Config, key []byte) {
 		return
 	}
 
-	fmt.Printf("Listing files for \"%s@%s\":\n", config.User, config.Organization)
-
 	r := bufio.NewReader(conn)
+
+	err = verify(r, conn, prv)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Printf("Listing files for \"%s@%s\":\n", config.User, config.Organization)
 	file, err := r.ReadString('\n')
 	for file != "EOF\n" && err == nil {
 		fmt.Print(file)

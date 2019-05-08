@@ -17,6 +17,13 @@ func printHelp(flags ...*flag.FlagSet) {
 	flags[3].PrintDefaults()
 }
 
+func checkError(err error) {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+}
+
 func main() {
 	configureCommand := flag.NewFlagSet("configure", flag.ExitOnError)
 	confPathC := configureCommand.String("config-path", "", "Path to the directory with the config file [optional] (default \"~/.mailctl\")")
@@ -45,45 +52,29 @@ func main() {
 	case "configure":
 		configureCommand.Parse(os.Args[2:])
 		err := configure(*confPathC)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 	case "send":
 		sendCommand.Parse(os.Args[2:])
 		pswd, err := readPassword()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 		config, err = readconfigfile(*confPathS, pswd)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 		send(config, *rcpt, *file, *subject)
 	case "recv":
 		recvCommand.Parse(os.Args[2:])
 		pswd, err := readPassword()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 		config, err = readconfigfile(*confPathR, pswd)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 		recv(config, *messageID)
 	case "list":
 		listCommand.Parse(os.Args[2:])
 		pswd, err := readPassword()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(2)
-		}
+		checkError(err)
 		config, err = readconfigfile(*confPathL, pswd)
-		list(config, pswd)
+		prv, err := readKey(config, *confPathL, pswd)
+		checkError(err)
+		list(config, pswd, prv)
 	case "h", "-h", "-help", "--help", "help":
 		printHelp(configureCommand, sendCommand, recvCommand, listCommand)
 		os.Exit(0)

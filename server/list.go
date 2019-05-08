@@ -26,6 +26,12 @@ func listFiles(r *bufio.Reader, conn net.Conn) {
 	}
 	conn.Write([]byte{0})
 
+	err := verify(r, conn, userHash)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
 	f, err := os.Open(userDir)
 	if err != nil {
 		log.Fatal(err)
