@@ -2,36 +2,16 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"net"
 	"os"
-
-	"golang.org/x/crypto/blake2b"
+	"os/user"
+	"path"
 )
 
-func listFiles(r *bufio.Reader, conn net.Conn) {
-	user, _ := r.ReadString('\n')
-	conn.Write([]byte("listing unread files for user " + user))
-	return
-}
-
-func registerKey(r *bufio.Reader, conn net.Conn) {
-	userHash := make([]byte, blake2b.Size256)
-	if _, err := r.Read(userHash); err != nil {
-		conn.Write([]byte{1})
-		return
-	}
-
-	pubBytes := make([]byte, 64)
-	if _, err := r.Read(pubBytes); err != nil {
-		conn.Write([]byte{1})
-		return
-	}
-	// save key to appropriate directory
-
-	conn.Write([]byte{0})
-	return
-}
+// define path to files in a global scope
+var confPath string
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
@@ -59,9 +39,28 @@ func handleConnection(conn net.Conn) {
 }
 
 func main() {
+	usr, err := user.Current()
+	if err != nil {
+		return
+	}
+	confPath = path.Join(usr.HomeDir, confDir)
+
+	flag.StringVar(&confPath, "config-path", confPath, "Path to the directory with the config file [optional] (default \"~/.mailctl\")")
+	address := flag.String("address", ":1881", "address to host on (default \":1881\")")
+	flag.Parse()
+
+	configured, err := configure(confPath)
+	if err != nil {
+		fmt.Println("couldn't configure organization", err)
+		os.Exit(1)
+	}
+	if !configured {
+		fmt.Println("configured organization at", confPath)
+	}
+
 	fmt.Println("Launching server...")
 
-	ln, err := net.Listen("tcp", ":1881")
+	ln, err := net.Listen("tcp", *address)
 	if err != nil {
 		fmt.Println("Error launching server: ", err)
 		os.Exit(1)
@@ -78,6 +77,7 @@ func main() {
 			continue
 		}
 
+		// handle connection in parallel process
 		go handleConnection(conn)
 	}
 }
