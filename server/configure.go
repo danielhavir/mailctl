@@ -28,13 +28,14 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	// register user if not already registered
-	userDir := path.Join(confPath, string(encodehex(userHash)))
+	// register user if not already registered and respond
+	userDir := path.Join(storage, string(encodehex(userHash)))
 	if _, err := configure(userDir); err != nil {
 		fmt.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
+	conn.Write([]byte{0})
 
 	pubBytes := make([]byte, 64)
 	if _, err := r.Read(pubBytes); err != nil {
@@ -43,7 +44,10 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	}
 	// save key to appropriate directory
 	pubPath := path.Join(userDir, "key.pub")
-	writefile(pubBytes, pubPath)
+	if err := writefile(pubBytes, pubPath); err != nil {
+		conn.Write([]byte{1})
+		return
+	}
 
 	conn.Write([]byte{0})
 	return

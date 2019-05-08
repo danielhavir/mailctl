@@ -103,11 +103,19 @@ func registerKey(config *Config, key, pub []byte) (status byte) {
 
 	// specify op
 	conn.Write([]byte{'c'})
+	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
+	// get the response
+	status, err = bufio.NewReader(conn).ReadByte()
+	if err != nil || status != 0 {
+		fmt.Println("user could not be registered, check connection ", err)
+		return 1
+	}
+	// write 64 bytes hex encoded
 	conn.Write(pub)
 	status, err = bufio.NewReader(conn).ReadByte()
 	if err != nil {
-		fmt.Println("public key could not be registered, check connections ", err)
+		fmt.Println("public key could not be registered, check connection ", err)
 		return 1
 	}
 	return
