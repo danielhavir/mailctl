@@ -87,7 +87,8 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 
 	conn.Write([]byte{0})
 
-	pubBytes := make([]byte, 64)
+	params, _ := hpke.GetParams(hpkeMode)
+	pubBytes := make([]byte, 2*params.PubKeySize)
 	if _, err := r.Read(pubBytes); err != nil {
 		conn.Write([]byte{1})
 		return

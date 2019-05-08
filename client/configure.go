@@ -304,6 +304,7 @@ func verify(r *bufio.Reader, conn net.Conn, prv crypto.PrivateKey) (err error) {
 		return
 	}
 
+	params, _ := hpke.GetParams(hpkeMode)
 	ciphertext := make([]byte, len)
 	rec, err := r.Read(ciphertext)
 	if uint8(rec) < len {
@@ -311,13 +312,12 @@ func verify(r *bufio.Reader, conn net.Conn, prv crypto.PrivateKey) (err error) {
 		return
 	}
 
-	enc := make([]byte, 32)
+	enc := make([]byte, params.PubKeySize)
 	rec, err = r.Read(enc)
-	if uint8(rec) < 32 {
+	if rec < params.PubKeySize {
 		err = errors.New("expected and received ephemeral key's lenght do not match")
 		return
 	}
-	params, _ := hpke.GetParams(hpkeMode)
 
 	msg, err := hpke.DecryptBase(params, prv, enc, ciphertext, nil)
 	if err != nil {
