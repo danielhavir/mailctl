@@ -56,9 +56,13 @@ func list(config *Config, key []byte) {
 
 	fmt.Printf("Listing files for \"%s@%s\":\n", config.User, config.Organization)
 
-	file, err := bufio.NewReader(conn).ReadString('\n')
+	r := bufio.NewReader(conn)
+	file, err := r.ReadString('\n')
 	for file != "EOF\n" && err == nil {
 		fmt.Print(file)
-		file, err = bufio.NewReader(conn).ReadString('\n')
+		file, err = r.ReadString('\n')
+		if err != nil {
+			fmt.Println("error: ", err, file)
+		}
 	}
 }
