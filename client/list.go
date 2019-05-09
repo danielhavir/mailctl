@@ -25,8 +25,9 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 
 	// specify op
 	conn.Write([]byte{'l'})
+	r := bufio.NewReader(conn)
 	// get the response
-	status, err = bufio.NewReader(conn).ReadByte()
+	status, err = r.ReadByte()
 	if err != nil || status != 0 {
 		fmt.Println("server did not recognize the operation ", err)
 		return
@@ -36,7 +37,7 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
-	status, err = bufio.NewReader(conn).ReadByte()
+	status, err = r.ReadByte()
 	if err != nil || status == 1 {
 		fmt.Println("files could not be listed, check connection ", err)
 		return
@@ -45,8 +46,6 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 		fmt.Printf("username \"%s\" does not exist within organization \"%s\"\n", config.User, config.Organization)
 		return
 	}
-
-	r := bufio.NewReader(conn)
 
 	err = verify(r, conn, prv)
 	if err != nil {

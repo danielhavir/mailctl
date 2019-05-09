@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
@@ -38,4 +39,15 @@ func mkdir(dirpath string) (err error) {
 func hash(data []byte) []byte {
 	h := blake2b.Sum256(data)
 	return h[:]
+}
+
+func byteToUint32(in []byte) (out uint32) {
+	out = binary.BigEndian.Uint32(in)
+	return
+}
+
+func uint32ToByte(in uint32) (out []byte) {
+	out = make([]byte, 4)
+	binary.BigEndian.PutUint32(out, in)
+	return
 }

@@ -32,6 +32,9 @@ func handleConnection(conn net.Conn) {
 	case 'c':
 		conn.Write([]byte{0})
 		registerKey(r, conn)
+	case 'r':
+		conn.Write([]byte{0})
+		sendToClient(r, conn)
 	default:
 		conn.Write([]byte{1})
 	}
