@@ -35,6 +35,9 @@ func handleConnection(conn net.Conn) {
 	case 'r':
 		conn.Write([]byte{0})
 		sendToClient(r, conn)
+	case 's':
+		conn.Write([]byte{0})
+		recvFromClient(r, conn)
 	default:
 		conn.Write([]byte{1})
 	}

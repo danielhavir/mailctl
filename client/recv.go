@@ -88,15 +88,8 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		fmt.Println("problem when receiving file", err)
 		return
 	}
-	enc := make([]byte, params.PubKeySize)
-	_, err = r.Read(enc)
-	if err != nil {
-		conn.Write([]byte{1})
-		fmt.Println("problem when receiving ephemeral key", err)
-		return
-	}
 
-	msg, err := hpke.DecryptBase(params, prv, enc, ct, nil)
+	msg, err := hpke.DecryptBase(params, prv, ct[:params.PubKeySize], ct[:params.PubKeySize], nil)
 	if err != nil {
 		conn.Write([]byte{1})
 		fmt.Println("decryption failed", err)

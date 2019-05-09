@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"log"
 	"net"
-	"os"
 	"path"
+	"strings"
 
 	"golang.org/x/crypto/blake2b"
 )
 
-func sendToClient(r *bufio.Reader, conn net.Conn) {
+func recvFromClient(r *bufio.Reader, conn net.Conn) {
 	userHash := make([]byte, blake2b.Size256)
 	if _, err := r.Read(userHash); err != nil {
 		log.Fatal(err)
@@ -19,45 +19,43 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 	}
 
 	userDir := path.Join(storage, string(encodehex(userHash)))
-	if _, err := os.Stat(userDir); os.IsNotExist(err) {
+	pBytes, err := readfile(path.Join(userDir, "key.pub"))
+	if err != nil {
 		conn.Write([]byte{2})
 		return
 	}
 	conn.Write([]byte{0})
 
-	err := verify(r, conn, userHash)
+	conn.Write(decodehex(pBytes))
+
+	messageID, err := r.ReadString('\n')
 	if err != nil {
 		log.Fatal(err)
+		return
+	}
+	messageID = strings.TrimSuffix(messageID, "\n")
+
+	ctLenBytes := make([]byte, 4)
+	_, err = r.Read(ctLenBytes)
+	if err != nil {
+		log.Fatal(err)
+		conn.Write([]byte{1})
 		return
 	}
 
-	l, err := r.ReadByte()
+	ct := make([]byte, byteToUint32(ctLenBytes))
+	_, err = r.Read(ct)
 	if err != nil {
 		log.Fatal(err)
 		conn.Write([]byte{1})
 		return
 	}
-	messageID := make([]byte, l)
-	_, err = r.Read(messageID)
+
+	err = writefile(ct, path.Join(userDir, messageID))
 	if err != nil {
 		log.Fatal(err)
 		conn.Write([]byte{1})
-		return
-	}
-	ct, err := readfile(path.Join(userDir, string(messageID)))
-	if err != nil {
-		log.Fatal(err)
-		conn.Write([]byte{2})
 		return
 	}
 	conn.Write([]byte{0})
-
-	ct = decodehex(ct)
-	conn.Write(uint32ToByte(uint32(len(ct))))
-	conn.Write(ct)
-
-	status, err := r.ReadByte()
-	if err != nil || status == 1 {
-		log.Fatal(err)
-	}
 }
