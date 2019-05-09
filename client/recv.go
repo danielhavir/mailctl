@@ -80,15 +80,17 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		fmt.Println("problem with connection", err)
 		return
 	}
-	ct := make([]byte, byteToUint32(msgLenBytes))
-	_, err = r.Read(ct)
+	digest := make([]byte, byteToUint32(msgLenBytes))
+	_, err = r.Read(digest)
 	if err != nil {
 		conn.Write([]byte{1})
 		fmt.Println("problem when receiving file", err)
 		return
 	}
-	enc := ct[:params.PubKeySize]
-	ct = ct[params.PubKeySize:]
+	enc := make([]byte, params.PubKeySize)
+	copy(enc, digest[:params.PubKeySize])
+	ct := make([]byte, len(digest)-params.PubKeySize)
+	copy(ct, digest[params.PubKeySize:])
 
 	msg, err := hpke.DecryptBase(params, prv, enc, ct, nil)
 	if err != nil {
@@ -104,6 +106,6 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 	conn.Write([]byte{0})
-	fmt.Printf("file %s successfully received", messageID)
+	fmt.Printf("file %s successfully received\n", messageID)
 
 }
