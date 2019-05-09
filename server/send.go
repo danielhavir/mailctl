@@ -52,7 +52,6 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 	}
 	conn.Write([]byte{0})
 
-	ct = decodehex(ct)
 	conn.Write(uint32ToByte(uint32(len(ct))))
 	conn.Write(ct)
 
