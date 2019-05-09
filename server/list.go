@@ -13,7 +13,7 @@ import (
 func listFiles(r *bufio.Reader, conn net.Conn) {
 	userHash := make([]byte, blake2b.Size256)
 	if _, err := r.Read(userHash); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
@@ -28,18 +28,18 @@ func listFiles(r *bufio.Reader, conn net.Conn) {
 
 	err := verify(r, conn, userHash)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return
 	}
 
 	f, err := os.Open(userDir)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	files, err := f.Readdir(-1)
 	f.Close()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	for _, file := range files {

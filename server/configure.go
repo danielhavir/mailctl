@@ -67,7 +67,7 @@ func verify(r *bufio.Reader, conn net.Conn, userHash []byte) (err error) {
 func registerKey(r *bufio.Reader, conn net.Conn) {
 	userHash := make([]byte, blake2b.Size256)
 	if _, err := r.Read(userHash); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
@@ -76,7 +76,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	userDir := path.Join(storage, string(encodehex(userHash)))
 	exist, err := configure(userDir)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}

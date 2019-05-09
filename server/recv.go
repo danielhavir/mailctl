@@ -13,7 +13,7 @@ import (
 func recvFromClient(r *bufio.Reader, conn net.Conn) {
 	userHash := make([]byte, blake2b.Size256)
 	if _, err := r.Read(userHash); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
@@ -30,7 +30,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 
 	messageID, err := r.ReadString('\n')
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return
 	}
 	messageID = strings.TrimSuffix(messageID, "\n")
@@ -38,7 +38,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 	ctLenBytes := make([]byte, 4)
 	_, err = r.Read(ctLenBytes)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
@@ -46,14 +46,14 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 	ct := make([]byte, byteToUint32(ctLenBytes))
 	_, err = r.Read(ct)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
 
 	err = writefile(ct, path.Join(userDir, messageID))
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		conn.Write([]byte{1})
 		return
 	}
