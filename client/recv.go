@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"crypto"
 	"fmt"
+	"io/ioutil"
 	"net"
 
 	hpke "github.com/danielhavir/go-hpke"
+	utils "github.com/danielhavir/mailctl/internal/utils"
 )
 
 func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
@@ -36,7 +38,7 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	userHash := hash([]byte(config.User + config.Organization))
+	userHash := utils.Hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
@@ -80,7 +82,7 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		fmt.Println("problem with connection", err)
 		return
 	}
-	digest := make([]byte, byteToUint32(msgLenBytes))
+	digest := make([]byte, utils.ByteToUint32(msgLenBytes))
 	_, err = r.Read(digest)
 	if err != nil {
 		conn.Write([]byte{1})
@@ -99,7 +101,7 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	err = writefile(msg, messageID)
+	err = ioutil.WriteFile(messageID, msg, 0644)
 	if err != nil {
 		conn.Write([]byte{1})
 		fmt.Println("file could not be saved", err)

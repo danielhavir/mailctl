@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"path"
 
 	hpke "github.com/danielhavir/go-hpke"
+	"github.com/danielhavir/mailctl/internal/utils"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -28,14 +30,14 @@ func configure(path string) (exist bool, err error) {
 }
 
 func verify(r *bufio.Reader, conn net.Conn, userHash []byte) (err error) {
-	userDir := path.Join(storage, string(encodehex(userHash)))
+	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
 	pubPath := path.Join(userDir, "key.pub")
-	pBytes, err := readfile(pubPath)
+	pBytes, err := ioutil.ReadFile(pubPath)
 	if err != nil {
 		return
 	}
 
-	pBytes = decodehex(pBytes)
+	pBytes = utils.DecodeHex(pBytes)
 	params, _ := hpke.GetParams(hpkeMode)
 	pub, err := hpke.Unmarshall(params, pBytes)
 	if err != nil {
@@ -73,7 +75,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	}
 
 	// register user if not already registered and respond
-	userDir := path.Join(storage, string(encodehex(userHash)))
+	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
 	exist, err := configure(userDir)
 	if err != nil {
 		log.Println(err)
@@ -95,7 +97,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	}
 	// save key to appropriate directory
 	pubPath := path.Join(userDir, "key.pub")
-	if err := writefile(pubBytes, pubPath); err != nil {
+	if err := ioutil.WriteFile(pubPath, pubBytes, 0644); err != nil {
 		conn.Write([]byte{1})
 		return
 	}

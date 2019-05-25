@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"path"
 
+	"github.com/danielhavir/mailctl/internal/utils"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -18,7 +20,7 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	userDir := path.Join(storage, string(encodehex(userHash)))
+	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
 	if _, err := os.Stat(userDir); os.IsNotExist(err) {
 		conn.Write([]byte{2})
 		return
@@ -44,7 +46,7 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 		conn.Write([]byte{1})
 		return
 	}
-	ct, err := readfile(path.Join(userDir, string(messageID)))
+	ct, err := ioutil.ReadFile(path.Join(userDir, string(messageID)))
 	if err != nil {
 		log.Println(err)
 		conn.Write([]byte{2})
@@ -52,7 +54,7 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 	}
 	conn.Write([]byte{0})
 
-	conn.Write(uint32ToByte(uint32(len(ct))))
+	conn.Write(utils.Uint32ToByte(uint32(len(ct))))
 	conn.Write(ct)
 
 	status, err := r.ReadByte()

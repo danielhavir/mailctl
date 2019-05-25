@@ -3,14 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"strings"
 
 	hpke "github.com/danielhavir/go-hpke"
+	utils "github.com/danielhavir/mailctl/internal/utils"
 )
 
 func send(config *Config, rcpt string, filepath string, subject string) {
-	msg, err := readfile(filepath)
+	msg, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		fmt.Printf("filepath \"%s\" does not exist\n", err)
 		return
@@ -44,7 +46,7 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 		return
 	}
 
-	userHash := hash([]byte(userOrg[0] + userOrg[1]))
+	userHash := utils.Hash([]byte(userOrg[0] + userOrg[1]))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
@@ -78,7 +80,7 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 		return
 	}
 
-	conn.Write(uint32ToByte(uint32(len(ct) + params.PubKeySize)))
+	conn.Write(utils.Uint32ToByte(uint32(len(ct) + params.PubKeySize)))
 	conn.Write(append(enc, ct...))
 
 	// get the response

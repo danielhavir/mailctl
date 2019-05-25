@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"io/ioutil"
 	"log"
 	"net"
 	"path"
 	"strings"
 
+	"github.com/danielhavir/mailctl/internal/utils"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -18,15 +20,15 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	userDir := path.Join(storage, string(encodehex(userHash)))
-	pBytes, err := readfile(path.Join(userDir, "key.pub"))
+	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	pBytes, err := ioutil.ReadFile(path.Join(userDir, "key.pub"))
 	if err != nil {
 		conn.Write([]byte{2})
 		return
 	}
 	conn.Write([]byte{0})
 
-	conn.Write(decodehex(pBytes))
+	conn.Write(utils.DecodeHex(pBytes))
 
 	messageID, err := r.ReadString('\n')
 	if err != nil {
@@ -43,7 +45,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	ct := make([]byte, byteToUint32(ctLenBytes))
+	ct := make([]byte, utils.ByteToUint32(ctLenBytes))
 	_, err = r.Read(ct)
 	if err != nil {
 		log.Println(err)
@@ -51,7 +53,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	err = writefile(ct, path.Join(userDir, messageID))
+	err = ioutil.WriteFile(path.Join(userDir, messageID), ct, 0644)
 	if err != nil {
 		log.Println(err)
 		conn.Write([]byte{1})
