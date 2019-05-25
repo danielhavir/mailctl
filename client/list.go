@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	utils "github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 )
 
 func list(config *Config, key []byte, prv crypto.PrivateKey) {
@@ -35,7 +35,7 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	userHash := utils.Hash([]byte(config.User + config.Organization))
+	userHash := commons.Hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response

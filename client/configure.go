@@ -17,7 +17,7 @@ import (
 	"syscall"
 
 	hpke "github.com/danielhavir/go-hpke"
-	"github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 	"github.com/danielhavir/xchacha20blake2b"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/ssh/terminal"
@@ -35,19 +35,18 @@ type Config struct {
 const (
 	confDir  = ".mailctl"
 	confFile = "config.json"
-	hpkeMode = hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV
 )
 
 func readPassword() (key []byte, err error) {
 	fmt.Print("Enter Password: ")
 	key, err = terminal.ReadPassword(int(syscall.Stdin))
-	key = utils.Hash(key)
+	key = commons.Hash(key)
 	fmt.Println()
 	return
 }
 
 func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, err error) {
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 	prv, pub, err := hpke.GenerateKeyPair(params, nil)
 	if err != nil {
 		return
@@ -57,7 +56,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 	if err != nil {
 		return
 	}
-	pBytes = utils.EncodeHex(pBytes)
+	pBytes = commons.EncodeHex(pBytes)
 	pubPath := path.Join(confPath, "key.pub")
 	ioutil.WriteFile(pubPath, pBytes, 0644)
 
@@ -72,7 +71,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 	}
 
 	encBytes := cipher.Seal(nil, nil, sBytes, append([]byte(config.User), []byte(config.Organization)...))
-	encBytes = utils.EncodeHex(encBytes)
+	encBytes = commons.EncodeHex(encBytes)
 	prvPath := path.Join(confPath, "key.pem")
 	ioutil.WriteFile(prvPath, encBytes, 0644)
 
@@ -80,7 +79,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 }
 
 func registerKey(config *Config, key, pub []byte) (status byte) {
-	userHash := utils.Hash([]byte(config.User + config.Organization))
+	userHash := commons.Hash([]byte(config.User + config.Organization))
 
 	// parse server IP from config file
 	ip := net.ParseIP(config.Host)
@@ -138,7 +137,7 @@ func readKey(config *Config, confPath string, key []byte) (prv crypto.PrivateKey
 	if err != nil {
 		return
 	}
-	encBytes = utils.DecodeHex(encBytes)
+	encBytes = commons.DecodeHex(encBytes)
 	cipher, err := xchacha20blake2b.New(key)
 	if err != nil {
 		return
@@ -149,7 +148,7 @@ func readKey(config *Config, confPath string, key []byte) (prv crypto.PrivateKey
 		return
 	}
 
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 	prv, err = hpke.UnmarshallPrivate(params, sBytes)
 	return
 }
@@ -172,7 +171,7 @@ func writeconfigfile(config *Config, confPath string, key []byte) (err error) {
 	}
 	h.Write(confBytes)
 	hash := h.Sum(nil)
-	confBytes = append(utils.EncodeHex(hash[:]), confBytes...)
+	confBytes = append(commons.EncodeHex(hash[:]), confBytes...)
 	err = ioutil.WriteFile(path.Join(confPath, confFile), confBytes, 0644)
 	return
 }
@@ -190,7 +189,7 @@ func readconfigfile(confPath string, key []byte) (config *Config, err error) {
 		return
 	}
 	// hex encoding doubles the size of the hash, hence 2*blake2b.Size256
-	hash := utils.DecodeHex(confBytes[:2*blake2b.Size256])
+	hash := commons.DecodeHex(confBytes[:2*blake2b.Size256])
 	confBytes = confBytes[2*blake2b.Size256:]
 	h, err := blake2b.New256(key)
 	if err != nil {
@@ -306,7 +305,7 @@ func verify(r *bufio.Reader, conn net.Conn, prv crypto.PrivateKey) (err error) {
 		return
 	}
 
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 	ciphertext := make([]byte, len)
 	rec, err := r.Read(ciphertext)
 	if uint8(rec) < len {

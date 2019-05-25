@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	hpke "github.com/danielhavir/go-hpke"
-	utils "github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 )
 
 func send(config *Config, rcpt string, filepath string, subject string) {
@@ -21,7 +21,7 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 
 	userOrg := strings.Split(rcpt, "@")
 	var status byte
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 
 	// parse server IP from config file
 	ip := net.ParseIP(config.Host)
@@ -46,7 +46,7 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 		return
 	}
 
-	userHash := utils.Hash([]byte(userOrg[0] + userOrg[1]))
+	userHash := commons.Hash([]byte(userOrg[0] + userOrg[1]))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
@@ -80,7 +80,7 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 		return
 	}
 
-	conn.Write(utils.Uint32ToByte(uint32(len(ct) + params.PubKeySize)))
+	conn.Write(commons.Uint32ToByte(uint32(len(ct) + params.PubKeySize)))
 	conn.Write(append(enc, ct...))
 
 	// get the response

@@ -12,13 +12,12 @@ import (
 	"path"
 
 	hpke "github.com/danielhavir/go-hpke"
-	"github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 	"golang.org/x/crypto/blake2b"
 )
 
 const (
-	confDir  = "mailctl"
-	hpkeMode = hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV
+	confDir = "mailctl"
 )
 
 func configure(path string) (exist bool, err error) {
@@ -30,15 +29,15 @@ func configure(path string) (exist bool, err error) {
 }
 
 func verify(r *bufio.Reader, conn net.Conn, userHash []byte) (err error) {
-	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	userDir := path.Join(storage, string(commons.EncodeHex(userHash)))
 	pubPath := path.Join(userDir, "key.pub")
 	pBytes, err := ioutil.ReadFile(pubPath)
 	if err != nil {
 		return
 	}
 
-	pBytes = utils.DecodeHex(pBytes)
-	params, _ := hpke.GetParams(hpkeMode)
+	pBytes = commons.DecodeHex(pBytes)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 	pub, err := hpke.Unmarshall(params, pBytes)
 	if err != nil {
 		return
@@ -75,7 +74,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	}
 
 	// register user if not already registered and respond
-	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	userDir := path.Join(storage, string(commons.EncodeHex(userHash)))
 	exist, err := configure(userDir)
 	if err != nil {
 		log.Println(err)
@@ -89,7 +88,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 
 	conn.Write([]byte{0})
 
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 	pubBytes := make([]byte, 2*params.PubKeySize)
 	if _, err := r.Read(pubBytes); err != nil {
 		conn.Write([]byte{1})

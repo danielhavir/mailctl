@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -20,7 +20,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	userDir := path.Join(storage, string(commons.EncodeHex(userHash)))
 	pBytes, err := ioutil.ReadFile(path.Join(userDir, "key.pub"))
 	if err != nil {
 		conn.Write([]byte{2})
@@ -28,7 +28,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 	}
 	conn.Write([]byte{0})
 
-	conn.Write(utils.DecodeHex(pBytes))
+	conn.Write(commons.DecodeHex(pBytes))
 
 	messageID, err := r.ReadString('\n')
 	if err != nil {
@@ -45,7 +45,7 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	ct := make([]byte, utils.ByteToUint32(ctLenBytes))
+	ct := make([]byte, commons.ByteToUint32(ctLenBytes))
 	_, err = r.Read(ct)
 	if err != nil {
 		log.Println(err)

@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -20,7 +20,7 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	userDir := path.Join(storage, string(commons.EncodeHex(userHash)))
 	if _, err := os.Stat(userDir); os.IsNotExist(err) {
 		conn.Write([]byte{2})
 		return
@@ -54,7 +54,7 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 	}
 	conn.Write([]byte{0})
 
-	conn.Write(utils.Uint32ToByte(uint32(len(ct))))
+	conn.Write(commons.Uint32ToByte(uint32(len(ct))))
 	conn.Write(ct)
 
 	status, err := r.ReadByte()

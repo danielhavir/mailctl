@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -20,7 +20,7 @@ func listFiles(r *bufio.Reader, conn net.Conn) {
 	}
 
 	// register user if not already registered and respond
-	userDir := path.Join(storage, string(utils.EncodeHex(userHash)))
+	userDir := path.Join(storage, string(commons.EncodeHex(userHash)))
 	if _, err := os.Stat(userDir); os.IsNotExist(err) {
 		conn.Write([]byte{2})
 		return

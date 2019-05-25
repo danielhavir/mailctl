@@ -8,12 +8,12 @@ import (
 	"net"
 
 	hpke "github.com/danielhavir/go-hpke"
-	utils "github.com/danielhavir/mailctl/internal/utils"
+	"github.com/danielhavir/mailctl/internal/commons"
 )
 
 func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 	var status byte
-	params, _ := hpke.GetParams(hpkeMode)
+	params, _ := hpke.GetParams(commons.HpkeMode)
 
 	// parse server IP from config file
 	ip := net.ParseIP(config.Host)
@@ -38,7 +38,7 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	userHash := utils.Hash([]byte(config.User + config.Organization))
+	userHash := commons.Hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
@@ -82,7 +82,7 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		fmt.Println("problem with connection", err)
 		return
 	}
-	digest := make([]byte, utils.ByteToUint32(msgLenBytes))
+	digest := make([]byte, commons.ByteToUint32(msgLenBytes))
 	_, err = r.Read(digest)
 	if err != nil {
 		conn.Write([]byte{1})
