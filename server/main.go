@@ -29,6 +29,9 @@ func handleConnection(conn net.Conn) {
 	case 'l':
 		conn.Write([]byte{0})
 		listFiles(r, conn)
+	case 'g':
+		conn.Write([]byte{0})
+		sendPublicKey(r, conn)
 	case 'c':
 		conn.Write([]byte{0})
 		registerKey(r, conn)

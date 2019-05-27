@@ -37,6 +37,20 @@ const (
 	confFile = "config.json"
 )
 
+func (config *Config) parseIP() *net.TCPAddr {
+	// parse server IP from config file
+	ip := net.ParseIP(config.Host)
+	addr := net.TCPAddr{
+		IP:   ip,
+		Port: config.Port,
+	}
+	return &addr
+}
+
+func (config *Config) getUserOrg() string {
+	return config.User + "@" + config.Organization
+}
+
 func readPassword() (key []byte, err error) {
 	fmt.Print("Enter Password: ")
 	key, err = terminal.ReadPassword(int(syscall.Stdin))
