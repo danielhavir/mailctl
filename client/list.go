@@ -11,19 +11,14 @@ import (
 
 func list(config *Config, key []byte, prv crypto.PrivateKey) {
 	var status byte
-
-	// parse server IP from config file
-	ip := net.ParseIP(config.Host)
-	addr := net.TCPAddr{
-		IP:   ip,
-		Port: config.Port,
-	}
+	userHash := commons.Hash([]byte(config.getUserOrg()))
 
 	// dial a connection
-	conn, err := net.DialTCP("tcp", nil, &addr)
+	conn, err := net.DialTCP("tcp", nil, config.parseIP())
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
 	// specify op
 	conn.Write([]byte{'l'})
@@ -35,7 +30,6 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	userHash := commons.Hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response
@@ -55,7 +49,7 @@ func list(config *Config, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	fmt.Printf("Listing files for \"%s@%s\":\n", config.User, config.Organization)
+	fmt.Printf("Listing files for \"%s\":\n", config.getUserOrg())
 	file, err := r.ReadString('\n')
 	for file != "EOF\n" && err == nil {
 		fmt.Print(file)

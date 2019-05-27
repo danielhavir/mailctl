@@ -14,16 +14,10 @@ import (
 func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 	var status byte
 	params, _ := hpke.GetParams(commons.HpkeMode)
-
-	// parse server IP from config file
-	ip := net.ParseIP(config.Host)
-	addr := net.TCPAddr{
-		IP:   ip,
-		Port: config.Port,
-	}
+	userHash := commons.Hash([]byte(config.getUserOrg()))
 
 	// dial a connection
-	conn, err := net.DialTCP("tcp", nil, &addr)
+	conn, err := net.DialTCP("tcp", nil, config.parseIP())
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +32,6 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 
-	userHash := commons.Hash([]byte(config.User + config.Organization))
 	// write 32 bytes of user/org hash identifier
 	conn.Write(userHash)
 	// get the response

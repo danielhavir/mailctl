@@ -93,7 +93,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 }
 
 func registerKey(config *Config, key, pub []byte) (status byte) {
-	userHash := commons.Hash([]byte(config.User + config.Organization))
+	userHash := commons.Hash([]byte(config.getUserOrg()))
 
 	// parse server IP from config file
 	ip := net.ParseIP(config.Host)
