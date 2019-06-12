@@ -59,8 +59,9 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		conn.Write([]byte{1})
 		return
 	}
+	ctLen := int(commons.ByteToUint32(ctLenBytes))
 
-	ct := make([]byte, commons.ByteToUint32(ctLenBytes))
+	ct := make([]byte, ctLen)
 	_, err = r.Read(ct)
 	if err != nil {
 		log.Println(err)

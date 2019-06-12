@@ -16,7 +16,6 @@ var storage string
 
 func handleConnection(conn net.Conn) {
 	start := time.Now()
-	defer conn.Close()
 	r := bufio.NewReader(conn)
 
 	op, err := r.ReadByte()
@@ -44,6 +43,9 @@ func handleConnection(conn net.Conn) {
 	default:
 		conn.Write([]byte{1})
 	}
+
+	conn.Close()
+
 	elapsed := time.Since(start)
 	fmt.Printf("New connection with %s resolved in %s\n", conn.RemoteAddr().String(), elapsed)
 }

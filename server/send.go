@@ -46,7 +46,8 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 		conn.Write([]byte{1})
 		return
 	}
-	ct, err := ioutil.ReadFile(path.Join(userDir, string(messageID)))
+	filePath := path.Join(userDir, string(messageID))
+	ct, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Println(err)
 		conn.Write([]byte{2})
@@ -60,5 +61,13 @@ func sendToClient(r *bufio.Reader, conn net.Conn) {
 	status, err := r.ReadByte()
 	if err != nil || status == 1 {
 		log.Println(err)
+		return
+	}
+
+	if status == 0 {
+		err = os.Remove(filePath)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }

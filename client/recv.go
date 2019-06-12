@@ -101,6 +101,8 @@ func recv(config *Config, messageID string, key []byte, prv crypto.PrivateKey) {
 		return
 	}
 	conn.Write([]byte{0})
+
+	conn.Close()
 	fmt.Printf("file %s successfully received\n", messageID)
 
 }
