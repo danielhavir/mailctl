@@ -10,4 +10,4 @@ sudo bash install-go.sh
 bash ~/.bashrc
 
 # Install go packages
-# TBA - Golang X Crypto
+go get github.com/danielhavir/mailctl
