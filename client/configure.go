@@ -265,7 +265,7 @@ func configure(confPath string) (err error) {
 		fmt.Print("Enter username: ")
 		user, _ := reader.ReadString('\n')
 		if len(user) > 1 {
-			config.User = strings.TrimSuffix(user, "\n")
+			config.User = strings.TrimSpace(user)
 		} else {
 			err = errors.New("username cannot be empty")
 			return
@@ -273,7 +273,7 @@ func configure(confPath string) (err error) {
 		fmt.Print("Enter organization: ")
 		org, _ := reader.ReadString('\n')
 		if len(org) > 1 {
-			config.Organization = strings.TrimSuffix(org, "\n")
+			config.Organization = strings.TrimSpace(org)
 		} else {
 			err = errors.New("username cannot be empty")
 			return
@@ -281,10 +281,10 @@ func configure(confPath string) (err error) {
 	}
 	fmt.Printf("Enter host address [%s]: ", config.Host)
 	host, _ := reader.ReadString('\n')
-	config.Host = strings.TrimSuffix(host, "\n")
+	config.Host = strings.TrimSpace(host)
 	fmt.Printf("Enter port number [%d]: ", config.Port)
 	portStr, _ := reader.ReadString('\n')
-	portStr = strings.TrimSuffix(portStr, "\n")
+	portStr = strings.TrimSpace(portStr)
 	config.Port, err = strconv.Atoi(portStr)
 	if err != nil {
 		err = errors.New("port must be a valid number")
