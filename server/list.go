@@ -44,7 +44,9 @@ func listFiles(r *bufio.Reader, conn net.Conn) {
 	}
 
 	for _, file := range files {
-		conn.Write([]byte(file.Name() + "\n"))
+		if file.Name() != "key.pub" {
+			conn.Write([]byte(file.Name() + "\n"))
+		}
 	}
 	conn.Write([]byte("EOF\n"))
 

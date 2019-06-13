@@ -96,7 +96,7 @@ func registerKey(r *bufio.Reader, conn net.Conn) {
 	}
 	// save key to appropriate directory
 	pubPath := path.Join(userDir, "key.pub")
-	if err := ioutil.WriteFile(pubPath, pubBytes, 0644); err != nil {
+	if err := ioutil.WriteFile(pubPath, pubBytes, 0400); err != nil {
 		conn.Write([]byte{1})
 		return
 	}

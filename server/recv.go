@@ -69,10 +69,10 @@ func recvFromClient(r *bufio.Reader, conn net.Conn) {
 		return
 	}
 
-	err = ioutil.WriteFile(path.Join(userDir, messageID), ct, 0644)
+	err = ioutil.WriteFile(path.Join(userDir, messageID), ct, 0400)
 	if err != nil {
 		log.Println(err)
-		conn.Write([]byte{1})
+		conn.Write([]byte{2})
 		return
 	}
 	conn.Write([]byte{0})

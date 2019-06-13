@@ -72,7 +72,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 	}
 	pBytes = commons.EncodeHex(pBytes)
 	pubPath := path.Join(confPath, "key.pub")
-	ioutil.WriteFile(pubPath, pBytes, 0644)
+	ioutil.WriteFile(pubPath, pBytes, 0400)
 
 	sBytes, err := hpke.MarshallPrivate(params, prv)
 	if err != nil {
@@ -87,7 +87,7 @@ func generateKey(config *Config, confPath string, key []byte) (pBytes []byte, er
 	encBytes := cipher.Seal(nil, nil, sBytes, append([]byte(config.User), []byte(config.Organization)...))
 	encBytes = commons.EncodeHex(encBytes)
 	prvPath := path.Join(confPath, "key.pem")
-	ioutil.WriteFile(prvPath, encBytes, 0644)
+	ioutil.WriteFile(prvPath, encBytes, 0400)
 
 	return
 }
@@ -186,7 +186,7 @@ func writeconfigfile(config *Config, confPath string, key []byte) (err error) {
 	h.Write(confBytes)
 	hash := h.Sum(nil)
 	confBytes = append(commons.EncodeHex(hash[:]), confBytes...)
-	err = ioutil.WriteFile(path.Join(confPath, confFile), confBytes, 0644)
+	err = ioutil.WriteFile(path.Join(confPath, confFile), confBytes, 0400)
 	return
 }
 

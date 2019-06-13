@@ -116,8 +116,11 @@ func send(config *Config, rcpt string, filepath string, subject string) {
 
 	// get the response
 	status, err = r.ReadByte()
-	if err != nil || status != 0 {
+	if err != nil || status == 1 {
 		fmt.Println("server did not receive the message ", err)
+		return
+	} else if status == 2 {
+		fmt.Printf("message with subject \"%s\" already exist\n", subject)
 		return
 	}
 
